@@ -1,7 +1,7 @@
 import requests
 import random
 
-BASE_URL = "http://server:8000"
+BASE_URL = "https://abhik-2020-data-cleaning-env.hf.space"
 
 ACTIONS = ["fill_missing", "fix_email", "remove_duplicates"]
 

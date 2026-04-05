@@ -1,136 +1,188 @@
 # 🧹 Data Cleaning RL Environment
 
-**Author:** Aditi Soni
-**Version:** 1.0.0
-**Built for:** OpenEnv Hackathon
+> An AI agent that learns to clean messy tabular data using Reinforcement Learning — built for the OpenEnv Hackathon 2026.
+
+**🌐 Live API:** https://abhik-2020-data-cleaning-env.hf.space/docs  
+**💻 GitHub:** https://github.com/Abhik-2020/data-cleaning-env  
+**👤 Author:** Abhik  
+**🏆 Built for:** OpenEnv Hackathon 2026  
 
 ---
 
-## 🚀 What is this?
+## 🤔 What is This Project?
 
-A **reinforcement learning environment** where an AI agent learns to clean messy tabular data — removing duplicates, filling missing values, and fixing broken email addresses — all through trial and reward.
+Most real-world datasets are messy — they have **missing values, broken emails, duplicate rows, and invalid data**. Normally, a developer writes fixed rules to clean this. But what if an AI could **learn to clean data by itself?**
 
-Built on top of the **OpenEnv** spec: a standardized way to expose data environments to RL agents via a REST API.
+That is exactly what this project does.
+
+This is a **Reinforcement Learning Environment** where:
+- The **environment** holds a dirty CSV file
+- The **AI agent** tries different cleaning actions
+- The **reward system** gives points for fixing problems
+- The agent **learns over time** to clean data in the fewest steps possible
+
+It is built on the **OpenEnv specification** — a standard way to expose RL environments as REST APIs, so any agent from anywhere can connect and interact.
 
 ---
 
-## 🧠 How it Works
+## 🎯 The Problem We Are Solving
+
+| Problem in Data | Example | Impact |
+|----------------|---------|--------|
+| Missing age | Rahul Verma — age is blank | Analysis breaks |
+| Negative age | Amit Joshi: -3, Pooja Gupta: -8 | Impossible values |
+| Duplicate rows | Same person appears 2-3 times | Inflated counts |
+| Double @@ in email | rahul@@yahoo.com | Email undeliverable |
+| No @ in email | amitjoshi | Completely invalid |
+| Incomplete email | vikram@ | Cannot deliver |
+
+**Before cleaning:** 15 rows, 3 types of issues  
+**After cleaning:** 12 rows, zero issues ✅
+
+---
+
+## 🧠 How It Works
 
 ```
-Agent --> POST /step (action) --> Environment
-        <-- observation + reward + done <--
+Dirty CSV Data
+      ↓
+  Environment (FastAPI Server)
+      ↓
+  Agent observes current issues
+      ↓
+  Agent picks an action
+  (fill_missing / fix_email / remove_duplicates)
+      ↓
+  Environment applies action
+      ↓
+  Agent receives reward (+) or penalty (-)
+      ↓
+  Repeat until data is fully clean!
 ```
 
-The environment wraps a dirty CSV file and exposes it as an RL gym:
+### Reward System
 
-| Component | Description |
-|---|---|
-| **State** | A snapshot of current data issues (`duplicates`, `missing_age`, `invalid_email`) |
-| **Actions** | `fill_missing`, `fix_email`, `remove_duplicates` |
-| **Reward** | +1 fix email/missing, +0.5 remove dups, -0.1/step, +5 bonus when clean |
-| **Done** | When no issues remain OR step limit hit |
+| Action | Reward | Why? |
+|--------|--------|------|
+| fill_missing (works) | +0.9 | Fixed missing/negative ages |
+| fix_email (works) | +0.9 | Fixed broken emails |
+| remove_duplicates (works) | +0.4 | Removed duplicate rows |
+| Data fully clean! | +5.0 BONUS | Task complete! |
+| Useless action | -0.1 | Wasted a step |
+
+### Agent Learning Progress
+
+```
+Episode 1  → Takes 20 steps, never finishes  ❌
+Episode 8  → Finishes in just 4 steps        ✅
+Episode 15 → Finishes in 14 steps            ✅
+Episode 18 → Finishes in 10 steps            ✅
+```
+
+The agent gets **smarter with every episode!**
 
 ---
 
-## 📁 Project Structure
+## 🗂️ Project Structure
 
 ```
 data-cleaning-env/
 ├── server/
-│   ├── __init__.py
-│   ├── app.py            # FastAPI server (REST endpoints)
-│   └── environment.py    # Core RL environment logic
-├── agent.py              # Q-learning agent (trains via API)
-├── inference.py          # Rule-based inference (greedy policy)
+│   ├── __init__.py       # Python package init
+│   ├── app.py            # FastAPI server — all API endpoints
+│   └── environment.py    # Core RL logic — cleaning, rewards, issue detection
+├── agent.py              # Q-Learning agent — trains via API calls
+├── inference.py          # Rule-based greedy cleaner — no server needed
 ├── models.py             # Pydantic request/response models
-├── data.csv              # Sample dirty dataset
-├── openenv.yaml          # OpenEnv spec manifest
-└── pyproject.toml        # Project config & dependencies
+├── data.csv              # Dirty input dataset (15 messy rows)
+├── openenv.yaml          # OpenEnv specification manifest
+├── Dockerfile            # Docker container setup
+├── docker-compose.yml    # Multi-container orchestration
+└── pyproject.toml        # Project metadata and dependencies
 ```
 
 ---
 
-## ⚙️ Setup & Installation
+## ⚙️ Tech Stack
 
-**Requirements:** Python ≥ 3.11, `uv` (recommended) or `pip`
-
-### Using uv (recommended)
-```bash
-uv venv
-source .venv/bin/activate     # Windows: .venv\Scripts\activate
-uv pip install -e .
-```
-
-### Using pip
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install fastapi uvicorn pydantic pandas openenv-core
-pip install -e .
-```
+| Technology | Purpose |
+|-----------|---------|
+| Python 3.11 | Core language |
+| FastAPI | REST API server |
+| Uvicorn | ASGI server |
+| Pandas | Data manipulation |
+| Pydantic | Data validation |
+| Requests | HTTP client for agent |
+| Q-Learning | RL algorithm |
+| Regex | Email validation & fixing |
+| Docker | Containerization |
+| Docker Compose | Multi-container setup |
+| Hugging Face Spaces | Cloud deployment |
+| GitHub | Version control |
+| OpenEnv | RL environment standard |
 
 ---
 
-## 🏃 Running the Environment Server
+## 🚀 Quick Start
+
+### Run Locally
 
 ```bash
+# Step 1 - Install dependencies
+pip install fastapi uvicorn pydantic pandas requests
+
+# Step 2 - Start server (Terminal 1)
 uvicorn server.app:app --reload
-```
 
-Server starts at: **http://127.0.0.1:8000**
-
-Interactive API docs: **http://127.0.0.1:8000/docs**
-
----
-
-## 🤖 Running the RL Agent (Q-Learning)
-
-In a second terminal (with the server running):
-
-```bash
+# Step 3 - Train AI agent (Terminal 2)
 python agent.py
+
+# Step 4 - Run rule-based cleaning
+python inference.py
+
+# Step 5 - See cleaned result
+python -c "import pandas as pd; print(pd.read_csv('cleaned_data.csv'))"
 ```
 
-The agent runs **20 training episodes**, learning which action to apply given the current data state using a Q-table. It prints rewards per step and the final learned Q-values.
-
----
-
-## 🔍 Running Inference (Greedy / Rule-Based)
-
-For a deterministic, rule-based cleaning pass (no server needed):
+### Run with Docker
 
 ```bash
-python inference.py
-```
+# Build image
+docker build -t data-cleaning-env .
 
-This uses the environment directly and saves the cleaned output to `cleaned_data.csv`.
+# Start server
+docker-compose up server
+
+# Run agent (new terminal)
+docker-compose run agent
+```
 
 ---
 
-## 🌐 API Reference
+## 🔗 API Endpoints
 
 | Endpoint | Method | Description |
-|---|---|---|
+|----------|--------|-------------|
 | `/` | GET | Environment info |
-| `/health` | GET | Health check |
-| `/reset` | POST | Reset environment to dirty state |
-| `/observation` | GET | Get current data state |
-| `/step` | POST | Apply an action |
+| `/health` | GET | Server health check |
+| `/reset` | POST | Reset to dirty data state |
+| `/observation` | GET | See current data without changes |
+| `/step` | POST | Apply a cleaning action |
 
-### Example: `/step` Request
-```json
+### Example Request & Response
+
+```bash
 POST /step
-{
-  "action_type": "fill_missing"
-}
+Content-Type: application/json
+
+{"action_type": "fill_missing"}
 ```
 
-### Example: `/step` Response
 ```json
 {
   "observation": {
-    "data_preview": [...],
-    "issues": ["invalid_email"]
+    "issues": ["duplicates", "invalid_email"],
+    "data_preview": [...]
   },
   "reward": 0.9,
   "done": false
@@ -139,57 +191,125 @@ POST /step
 
 ---
 
-## 🧪 Sample Data (`data.csv`)
+## 🧪 How to Test
 
-| name | age | email |
-|---|---|---|
-| Rohit | 25 | rohit@gmail ❌ |
-| Rohit | 25 | rohit@gmail ❌ (duplicate) |
-| Anjali | *(missing)* | anjali@gmail.com ✅ |
-| Amit | -5 ❌ | amit@@gmail.com ❌ |
+### Option 1 — Live Browser (No Setup Needed!)
 
-The agent must learn to clean all of this in the fewest steps possible.
+Open: **https://abhik-2020-data-cleaning-env.hf.space/docs**
+
+Interactive Swagger UI — test all endpoints by clicking buttons!
 
 ---
 
-## 🏆 Reward Structure
+### Option 2 — Step by Step on /docs Page
 
-| Event | Reward |
-|---|---|
-| Fixed missing/invalid age | +1.0 |
-| Fixed invalid email(s) | +1.0 |
-| Removed duplicate rows | +0.5 |
-| Each step taken | -0.1 |
-| **Dataset fully clean** | **+5.0 bonus** |
+#### Step 1 — Reset (Load dirty data)
+- Click **POST /reset** → **Try it out** → **Execute**
 
----
-
-## 🔧 OpenEnv Compatibility
-
-This environment is compliant with the **OpenEnv 1.0 spec** (`openenv.yaml`). It can be:
-- Registered in the OpenEnv registry
-- Loaded by any OpenEnv-compatible agent framework
-- Extended with new actions or reward signals
+✅ Response:
+```json
+{"observation": {"issues": ["duplicates", "missing_age", "invalid_email"]}}
+```
+> 3 problems detected!
 
 ---
 
-## 📦 Dependencies
+#### Step 2 — Fix Ages
+- Click **POST /step** → **Try it out**
+- Paste: `{"action_type": "fill_missing"}`
+- Click **Execute**
 
-- `fastapi` — REST API server
-- `uvicorn` — ASGI server
-- `pydantic` — Data validation
-- `pandas` — Data manipulation
-- `openenv-core ≥ 0.2.0` — OpenEnv framework
-
----
-
-## 💡 Ideas for Extension
-
-- Add more data issues: type mismatches, outliers, wrong date formats
-- Train a DQN agent instead of tabular Q-learning
-- Support multi-column, multi-table datasets
-- Add a web dashboard to visualize agent training live
+✅ Response:
+```json
+{"reward": 0.9, "done": false, "observation": {"issues": ["duplicates", "invalid_email"]}}
+```
+> missing_age fixed! Null → 27, Negative (-3, -8) → 27
 
 ---
 
-*Built with ❤️ for the OpenEnv Hackathon by Aditi Soni*
+#### Step 3 — Fix Emails
+- Click **POST /step** → **Try it out**
+- Paste: `{"action_type": "fix_email"}`
+- Click **Execute**
+
+✅ Response:
+```json
+{"reward": 0.9, "done": false, "observation": {"issues": ["duplicates"]}}
+```
+> Emails fixed! rahul@@yahoo.com → rahul@yahoo.com
+
+---
+
+#### Step 4 — Remove Duplicates
+- Click **POST /step** → **Try it out**
+- Paste: `{"action_type": "remove_duplicates"}`
+- Click **Execute**
+
+✅ Response:
+```json
+{"reward": 5.4, "done": true, "observation": {"issues": []}}
+```
+> 🎉 Data fully clean! 15 rows → 12 rows. done: true!
+
+---
+
+### Option 3 — Python Script
+
+```python
+import requests
+
+BASE = "https://abhik-2020-data-cleaning-env.hf.space"
+
+# Reset
+r = requests.post(f"{BASE}/reset")
+print("Issues found:", r.json()["observation"]["issues"])
+
+# Fix ages
+r = requests.post(f"{BASE}/step", json={"action_type": "fill_missing"})
+print("Reward:", r.json()["reward"])
+
+# Fix emails
+r = requests.post(f"{BASE}/step", json={"action_type": "fix_email"})
+print("Reward:", r.json()["reward"])
+
+# Remove duplicates
+r = requests.post(f"{BASE}/step", json={"action_type": "remove_duplicates"})
+print("Done:", r.json()["done"])
+print("Issues left:", r.json()["observation"]["issues"])
+```
+
+---
+
+## 📊 OpenEnv Specification
+
+This environment is fully compliant with the **OpenEnv 1.0 spec** (`openenv.yaml`):
+
+```yaml
+observation_space:
+  - data_preview: array of row objects
+  - issues: list of detected problems
+
+action_space:
+  - fill_missing
+  - fix_email  
+  - remove_duplicates
+
+tasks:
+  - easy:   Remove duplicates only
+  - medium: Fill missing values
+  - hard:   Fix all issues (full clean)
+```
+
+---
+
+## 💡 Future Ideas
+
+- Train a Deep Q-Network (DQN) for larger datasets
+- Add more issue types: wrong dates, type mismatches, outliers
+- Live dashboard to visualize agent training in real time
+- Support multi-table and multi-column datasets
+- Deploy multiple agents training simultaneously
+
+---
+
+*Made with ❤️ for OpenEnv Hackathon 2026 — Abhik*
