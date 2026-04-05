@@ -1,6 +1,6 @@
 # 🧹 Data Cleaning RL Environment
 
-**Author:** Aditi Soni
+**Author:** Abhik soni
 **Version:** 1.0.0
 **Built for:** OpenEnv Hackathon
 
@@ -192,4 +192,4 @@ This environment is compliant with the **OpenEnv 1.0 spec** (`openenv.yaml`). It
 
 ---
 
-*Built with ❤️ for the OpenEnv Hackathon by Aditi Soni*
+*Built with ❤️ for the OpenEnv Hackathon by Abhik soni*
