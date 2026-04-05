@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+
+  # ── RL Environment Server ──────────────────────────────────────────
+  server:
+    build: .
+    container_name: data-cleaning-server
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app          # mounts your local folder so changes reflect instantly
+    command: uvicorn server.app:app --host 0.0.0.0 --port 8000 --reload
+
+  # ── Q-Learning Agent ───────────────────────────────────────────────
+  agent:
+    build: .
+    container_name: data-cleaning-agent
+    depends_on:
+      - server
+    volumes:
+      - .:/app
+    command: >
+      sh -c "sleep 3 && python agent.py"   # waits 3 sec for server to start
+
+  # ── Inference (Rule-based cleaning) ───────────────────────────────
+  inference:
+    build: .
+    container_name: data-cleaning-inference
+    depends_on:
+      - server
+    volumes:
+      - .:/app
+    command: >
+      sh -c "sleep 3 && python inference.py"
+    profiles:
+      - inference    # only runs when explicitly called

@@ -1,0 +1,48 @@
+name: data-cleaning-env
+version: 1.0
+
+description: |
+  A real-world data cleaning environment where an AI agent fixes messy tabular data
+  by removing duplicates, filling missing values, and correcting invalid emails.
+
+entrypoint: server.app:app
+
+observation_space:
+  type: object
+  properties:
+    data_preview:
+      type: array
+      items:
+        type: object
+    issues:
+      type: array
+      items:
+        type: string
+
+action_space:
+  type: object
+  properties:
+    action_type:
+      type: string
+      enum: ["remove_duplicates", "fill_missing", "fix_email"]
+
+reward:
+  description: |
+    +1 for fixing missing values
+    +1 for correcting invalid emails
+    +0.5 for removing duplicates
+    -0.1 per step to encourage efficiency
+    +5 bonus when data is fully clean
+
+tasks:
+  - name: easy
+    description: Remove duplicate rows from dataset
+    success_criteria: No duplicate rows remain
+
+  - name: medium
+    description: Fill missing values in dataset
+    success_criteria: No null values remain
+
+  - name: hard
+    description: Fully clean dataset (duplicates, missing values, invalid emails)
+    success_criteria: Data has no issues

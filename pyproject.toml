@@ -1,0 +1,16 @@
+[project]
+name = "data-cleaning-env"
+version = "1.0.0"
+description = "OpenEnv Data Cleaning Agent Environment"
+authors = [{name = "Aditi Soni"}]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "openenv-core>=0.2.0"
+]
+requires-python = ">=3.11"
+
+# 🔥 IMPORTANT PART (jo missing tha)
+[project.scripts]
+server = "server.app:main"
