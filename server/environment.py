@@ -9,6 +9,7 @@ class DataCleaningEnv:
         self.original_df = None
         self.step_count = 0
         self.max_steps = 20
+        self.current_task = "hard"
 
     def load_data(self, path: str):
         self.df = pd.read_csv(path)
@@ -22,16 +23,14 @@ class DataCleaningEnv:
             issues.append("duplicates")
         if "age" in self.df.columns:
             ages = pd.to_numeric(self.df["age"], errors="coerce")
-            missing_age = ages.isnull().any()
-            invalid_age = (ages < 0).any()
-            if missing_age or invalid_age:
+            if ages.isnull().any() or (ages < 0).any():
                 issues.append("missing_age")
         if "email" in self.df.columns:
             email_pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
-            invalid_emails = self.df["email"].apply(
+            invalid = self.df["email"].apply(
                 lambda e: not bool(re.match(email_pattern, str(e))) if pd.notna(e) else False
             )
-            if invalid_emails.any():
+            if invalid.any():
                 issues.append("invalid_email")
         return issues
 
@@ -51,11 +50,43 @@ class DataCleaningEnv:
             preview = []
         return {"data_preview": preview, "issues": self._get_issues()}
 
-    def reset(self):
+    def _get_info(self):
+        issues = self._get_issues()
+        return {
+            "step_count": self.step_count,
+            "issues_remaining": len(issues),
+            "total_rows": len(self.df) if self.df is not None else 0,
+            "task": self.current_task,
+        }
+
+    def get_state(self):
+        return {
+            "observation": self._get_observation(),
+            "step_count": self.step_count,
+            "max_steps": self.max_steps,
+            "current_task": self.current_task,
+            "issues": self._get_issues(),
+            "done": len(self._get_issues()) == 0 or self.step_count >= self.max_steps,
+        }
+
+    def reset(self, task: str = "hard"):
         if self.original_df is not None:
             self.df = self.original_df.copy()
         self.step_count = 0
+        self.current_task = task
         return self._get_observation()
+
+    def grade(self, task: str) -> float:
+        issues = self._get_issues()
+        if task == "easy":
+            return 1.0 if "duplicates" not in issues else 0.0
+        elif task == "medium":
+            return 1.0 if "missing_age" not in issues else 0.0
+        elif task == "hard":
+            if len(issues) == 0:
+                return 1.0
+            return round((3 - len(issues)) / 3, 2)
+        return 0.0
 
     def step(self, action: str):
         self.step_count += 1
@@ -69,14 +100,10 @@ class DataCleaningEnv:
 
         elif action == "fill_missing":
             if "age" in self.df.columns:
-                # Convert to numeric first
                 self.df["age"] = pd.to_numeric(self.df["age"], errors="coerce")
-                # Calculate median using only valid positive ages
                 valid_ages = self.df["age"][(self.df["age"].notna()) & (self.df["age"] >= 0)]
                 median_age = valid_ages.median() if len(valid_ages) > 0 else 25
-                # Replace NaN ages with median
                 self.df["age"] = self.df["age"].fillna(median_age)
-                # Replace negative ages with median
                 self.df.loc[self.df["age"] < 0, "age"] = median_age
                 reward += 1.0
 
@@ -86,15 +113,11 @@ class DataCleaningEnv:
 
                 def clean_email(e):
                     e = str(e).strip()
-                    # Fix double @@ -> @
                     e = re.sub(r"@+", "@", e)
-                    # Add domain if missing (e.g. "name@" -> "name@gmail.com")
                     if re.match(r"^[\w\.-]+@$", e):
                         e = e + "gmail.com"
-                    # Add @ and domain if completely missing (e.g. "namegmail" -> fix)
                     if "@" not in e:
                         e = e + "@gmail.com"
-                    # Add .com if domain has no extension (e.g. "name@yahoo" -> "name@yahoo.com")
                     if "@" in e and "." not in e.split("@")[-1]:
                         e = e + ".com"
                     return e
@@ -114,7 +137,7 @@ class DataCleaningEnv:
         if len(issues) == 0:
             reward += 5.0
 
-        return self._get_observation(), reward, done
+        return self._get_observation(), reward, done, self._get_info()
 
     def get_clean_data(self):
         return self.df

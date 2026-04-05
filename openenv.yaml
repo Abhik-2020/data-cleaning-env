@@ -32,13 +32,16 @@ reward:
 
 tasks:
   - name: easy
-    description: Remove duplicate rows from dataset
+    description: Remove all duplicate rows from the dataset
     success_criteria: No duplicate rows remain
+    grade_endpoint: /grade?task=easy
 
   - name: medium
-    description: Fill missing values in dataset
-    success_criteria: No null values remain
+    description: Fill all missing and invalid age values
+    success_criteria: No null or negative age values remain
+    grade_endpoint: /grade?task=medium
 
   - name: hard
-    description: Fully clean dataset
-    success_criteria: Data has no issues
+    description: Fully clean the dataset - fix duplicates, missing ages, and invalid emails
+    success_criteria: Data has no issues at all
+    grade_endpoint: /grade?task=hard
