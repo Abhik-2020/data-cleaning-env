@@ -1,50 +1,52 @@
 """
 Baseline inference script for Data Cleaning RL Environment.
-Uses OpenAI-compatible client with Together AI.
-Set API key via environment variable: OPENAI_API_KEY
+Uses hackathon-provided LiteLLM proxy via API_BASE_URL and API_KEY env vars.
 """
 
 import os
 import requests
+from openai import OpenAI
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# ── Config — uses hackathon injected environment variables ─────────────────────
 BASE_URL = os.getenv("ENV_BASE_URL", "http://127.0.0.1:7860")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3-8b-chat-hf")
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.together.xyz/v1")
+API_KEY = os.environ["API_KEY"]
+API_BASE_URL = os.environ["API_BASE_URL"]
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
 TASKS = ["easy", "medium", "hard"]
 ACTIONS = ["fill_missing", "fix_email", "remove_duplicates"]
 
-
-def call_llm(prompt: str) -> str:
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=OPENAI_API_KEY, base_url=API_BASE_URL)
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=50,
-            temperature=0.0,
-        )
-        return response.choices[0].message.content.strip()
-    except Exception:
-        return None
+# Initialize OpenAI client with hackathon LiteLLM proxy
+client = OpenAI(
+    api_key=API_KEY,
+    base_url=API_BASE_URL,
+)
 
 
-def pick_action_with_llm(issues: list) -> str:
-    if not OPENAI_API_KEY:
-        return pick_action_rule_based(issues)
+def call_llm(issues: list) -> str:
+    """Ask LLM which action to take given current issues."""
     prompt = f"""You are a data cleaning agent. The current data issues are: {issues}
 Available actions: fill_missing, fix_email, remove_duplicates
 Reply with ONLY the action name, nothing else."""
-    response = call_llm(prompt)
-    if response and response in ACTIONS:
-        return response
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=20,
+            temperature=0.0,
+        )
+        action = response.choices[0].message.content.strip()
+        if action in ACTIONS:
+            return action
+    except Exception as e:
+        print(f"LLM error: {e}", flush=True)
+
     return pick_action_rule_based(issues)
 
 
 def pick_action_rule_based(issues: list) -> str:
+    """Rule-based fallback policy."""
     if "missing_age" in issues:
         return "fill_missing"
     elif "invalid_email" in issues:
@@ -55,6 +57,7 @@ def pick_action_rule_based(issues: list) -> str:
 
 
 def run_task(task: str) -> float:
+    """Run one full episode for a given task and return grade score."""
     r = requests.post(f"{BASE_URL}/reset", params={"task": task})
     obs = r.json()["observation"]
 
@@ -71,7 +74,7 @@ def run_task(task: str) -> float:
         if not issues:
             break
 
-        action = pick_action_with_llm(issues)
+        action = call_llm(issues)
 
         r = requests.post(f"{BASE_URL}/step", json={"action_type": action})
         result = r.json()
