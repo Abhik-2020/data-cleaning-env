@@ -77,31 +77,31 @@ class DataCleaningEnv:
         return self._get_observation()
 
     def grade(self, task: str) -> float:
-    issues = self._get_issues()
-    total_issues = 3
+        issues = self._get_issues()
+        total_issues = 3
 
-    if task == "easy":
-        if "duplicates" not in issues:
-            return 0.99
-        else:
-            return 0.01
+        if task == "easy":
+            if "duplicates" not in issues:
+                return 0.99
+            else:
+                return 0.01
 
-    elif task == "medium":
-        if "missing_age" not in issues:
-            return 0.99
-        else:
-            return 0.01
+        elif task == "medium":
+            if "missing_age" not in issues:
+                return 0.99
+            else:
+                return 0.01
 
-    elif task == "hard":
-        remaining = len(issues)
-        if remaining == 0:
-            return 0.99
-        elif remaining == total_issues:
-            return 0.01
-        else:
-            return round(0.01 + ((total_issues - remaining) / total_issues) * 0.98, 2)
+        elif task == "hard":
+            remaining = len(issues)
+            if remaining == 0:
+                return 0.99
+            elif remaining == total_issues:
+                return 0.01
+            else:
+                return round(0.01 + ((total_issues - remaining) / total_issues) * 0.98, 2)
 
-    return 0.01
+        return 0.01
 
     def step(self, action: str):
         self.step_count += 1

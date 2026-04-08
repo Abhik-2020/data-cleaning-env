@@ -7,10 +7,10 @@ services:
     build: .
     container_name: data-cleaning-server
     ports:
-      - "8000:8000"
+      - "7860:7860"
     volumes:
-      - .:/app          # mounts your local folder so changes reflect instantly
-    command: uvicorn server.app:app --host 0.0.0.0 --port 8000 --reload
+      - .:/app
+    command: uvicorn server.app:app --host 0.0.0.0 --port 7860 --reload
 
   # ── Q-Learning Agent ───────────────────────────────────────────────
   agent:
@@ -21,7 +21,7 @@ services:
     volumes:
       - .:/app
     command: >
-      sh -c "sleep 3 && python agent.py"   # waits 3 sec for server to start
+      sh -c "sleep 3 && python agent.py"
 
   # ── Inference (Rule-based cleaning) ───────────────────────────────
   inference:
@@ -34,4 +34,4 @@ services:
     command: >
       sh -c "sleep 3 && python inference.py"
     profiles:
-      - inference    # only runs when explicitly called
+      - inference
