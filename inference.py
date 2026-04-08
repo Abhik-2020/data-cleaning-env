@@ -8,7 +8,7 @@ import requests
 from openai import OpenAI
 
 # ── Config — uses hackathon injected environment variables ─────────────────────
-BASE_URL = os.getenv("ENV_BASE_URL", "http://server:7860")
+BASE_URL = os.getenv("ENV_BASE_URL", "http://localhost:7860")
 API_KEY = os.environ["API_KEY"]
 API_BASE_URL = os.environ["API_BASE_URL"]
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
